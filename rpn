@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+# USAGE {{{1
+"""
+RPN calculator
+
+Usage:
+    rpn
+
+Supports 4 basic operators (+. -, */ /) along with recip & dup.
+Save to variable using: =name.
+
+Examples:
+    : 5V 3V-
+    2V: =v
+    2V: 100kohms
+    100 kΩ: /
+    20 µA: v*
+    40 µW: 6.2832M "rads/s"
+    6.28 Mrads/s: 2pi/
+    1 MHz: recip
+    1 µs
+"""
+
+# IMPORTS {{{1
+from docopt import docopt
+from unit_propagation import (
+    UnitPropagatingQuantity as Quantity, QuantiPhyError
+)
+from inform import Color, Error, display, error, terminate
+import math
+
+# GLOBALS {{{1
+prompt = ""
+stack = []
+variables = {
+    "pi": Quantity(math.pi),
+    "tau": Quantity(math.tau, "rads"),
+    "2pi": Quantity(math.tau, "rads"),
+}
+highlight = Color("magenta")
+Quantity.set_prefs(
+    map_sf = Quantity.map_sf_to_greek,
+    preferred_units = {
+        "Ω": "ohm ohms Ω",
+        "Ʊ": "mhos mho",
+    }
+)
+
+# HELPERS {{{1
+# tokenize() {{{2
+def tokenize(entered):
+    # Basically this is a simple split on spaces except the entered string is 
+    # first processed to add a leading space to operators when outside a quoted 
+    # string to allow an operator to immediately follow a number or variable.
+    chars = []
+    within_quotes = False
+    for char in entered:
+        if char == '"':
+            within_quotes = not within_quotes
+        if not within_quotes and char in "+-*/":
+            chars.append(" " + char)
+        else:
+            chars.append(char)
+    return ''.join(chars).split()
+
+# evaluate() {{{2
+def evaluate(entered):
+    for token in tokenize(entered):
+        if token == "+":
+            stack.append(stack.pop() + stack.pop())
+        elif token == "-":
+            subtrahend = stack.pop()
+            minuend = stack.pop()
+            stack.append(minuend - subtrahend)
+        elif token == "*":
+            stack.append(stack.pop() * stack.pop())
+        elif token == "/":
+            divisor = stack.pop()
+            numerator = stack.pop()
+            stack.append(numerator / divisor)
+        elif token[0] == '"' and token[-1] == '"':
+            stack[-1].units = token[1:-1]
+        elif token in variables:
+            stack.append(variables[token])
+        elif token == "recip":
+            stack.append(1 / stack.pop())
+        elif token == "dup":
+            stack.append(stack[-1])
+        elif token.startswith("="):
+            variables[token[1:]] = stack[-1]
+        else:
+            # QuantiPhy only applies preferred units on output.
+            # Force the conversion on input.
+            q = Quantity(token)
+            q.units = q._preferred_units.get(q.units, q.units)
+            stack.append(q)
+    return stack[-1]
+
+# MAIN {{{1
+cmdline = docopt(__doc__)
+while True:
+    try:
+        entered = input(f"{highlight(prompt)}: ")
+    except (EOFError, KeyboardInterrupt, SystemError):
+        display()
+        terminate()
+    try:
+        prompt = evaluate(entered)
+    except QuantiPhyError as e:
+        error(e)
+    except IndexError as e:
+        error(e)
+
+
+

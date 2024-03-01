@@ -1,0 +1,15 @@
+major: 0
+minor: 0
+patch: 0
+revision: 0
+type: release
+style: python
+files:
+    pyproject.toml:
+        version: version
+    unit_propagation.py:
+        version: __version__
+        date: __released__
+    README.rst:
+        version: Version
+        date: Released

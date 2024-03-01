@@ -1,0 +1,171 @@
+# TODO
+# Still need to do the unary and comparison operators
+# probably need to make the multiplication and division tests more comprehensive
+# need to check simplifications
+
+test_unit_propagation:
+  # Addition {{{1
+
+  cranberry:
+    evaluate: Quantity(2) + Quantity(1)
+    expect: Quantity(3)
+
+  syringe:
+    evaluate: Quantity('2MHz') + Quantity('1MHz')
+    expect: Quantity('3MHz')
+
+  penknife:
+    evaluate: Quantity('2MHz') + 1e6
+    expect: Quantity('3MHz')
+
+  bumblebee:
+    evaluate: 2e6 + Quantity('1MHz')
+    expect: Quantity('3MHz')
+
+  quiet:
+    execute:
+        > q = Quantity('2MHz')
+        > q += Quantity('1MHz')
+    expect: q == Quantity('3MHz')
+
+  garland:
+    evaluate: Quantity('2MHz') + Quantity(1e6, 'rads/s')
+    expect: incompatible units (2 MHz and 1 Mrads/s).
+
+  bereave:
+    check_units: no
+    evaluate: Quantity('2MHz') + Quantity(1e6, 'rads/s')
+    expect: Quantity('3MHz')
+
+  bumble:
+    check_units: strict
+    evaluate: Quantity('2MHz') + 1e6
+    expect: incompatible units (Hz and None).
+
+  sniper:
+    check_units: strict
+    evaluate: 2e6 + Quantity('1MHz')
+    expect: incompatible units (2000000.0 and 1 MHz).
+
+  # Subtraction {{{1
+
+  detective:
+    evaluate: Quantity(3) - Quantity(2)
+    expect: Quantity(1)
+
+  whirlpool:
+    evaluate: Quantity('3MHz') - Quantity('2MHz')
+    expect: Quantity('1MHz')
+
+  suffering:
+    evaluate: Quantity('3MHz') - 2e6
+    expect: Quantity('1MHz')
+
+  butcher:
+    evaluate: 3e6 - Quantity('2MHz')
+    expect: Quantity('1MHz')
+
+  booth:
+    execute:
+        > q = Quantity('3MHz')
+        > q -= Quantity('2MHz')
+    expect: q == Quantity('1MHz')
+
+  enumerate:
+    evaluate: Quantity('3MHz') - Quantity(2e6, 'rads/s')
+    expect: incompatible units (3 MHz and 2 Mrads/s).
+
+  officiate:
+    check_units: no
+    evaluate: Quantity('3MHz') - Quantity(2e6, 'rads/s')
+    expect: Quantity('1MHz')
+
+  injury:
+    check_units: strict
+    evaluate: Quantity('3MHz') - 2e6
+    expect: incompatible units (Hz and None).
+
+  psych:
+    check_units: strict
+    evaluate: 2e6 - Quantity('2MHz')
+    expect: incompatible units (2000000.0 and 2 MHz).
+
+  # Multiplication {{{1
+
+  spittoon:
+    evaluate: Quantity(3) * Quantity(2)
+    expect: Quantity(6)
+
+  wrongdoer:
+    evaluate: Quantity('3V') * Quantity('2A')
+    expect: Quantity('6W')
+
+  quote:
+    evaluate: Quantity('3V') * 2
+    expect: Quantity('6V')
+
+  aphorism:
+    evaluate: 3 * Quantity('2A')
+    expect: Quantity('6A')
+
+  deform:
+    execute:
+        > q = Quantity('3V')
+        > q *= Quantity('2A')
+    expect: q == Quantity('6W')
+
+  matter:
+    evaluate: Quantity('3J') * Quantity(2, 's')
+    expect: Quantity(6, 'J-s')
+
+  combatant:
+    check_units: strict
+    evaluate: Quantity('3V') * 2
+    expect: incompatible units (3 V and 2).
+
+  possessor:
+    check_units: strict
+    evaluate: 2e6 * Quantity('2A')
+    expect: incompatible units (2 A and 2000000.0).
+
+  # Division {{{1
+
+  portable:
+    evaluate: Quantity(6) / Quantity(2)
+    expect: Quantity(3)
+
+  croupier:
+    evaluate: Quantity('6V') / Quantity('2A')
+    expect: Quantity('3Ω')
+
+  stiffener:
+    evaluate: Quantity('6V') / 2
+    expect: Quantity('3V')
+
+  fitter:
+    evaluate: 6 / Quantity('2A')
+    expect: Quantity('3 A⁻¹')
+
+  viscount:
+    evaluate: Quantity(6) / Quantity('2A')
+    expect: Quantity('3 A⁻¹')
+
+  deity:
+    execute:
+        > q = Quantity('6V')
+        > q /= Quantity('2A')
+    expect: q == Quantity('3Ω')
+
+  sycamore:
+    evaluate: Quantity('6_m') / Quantity(2, 's')
+    expect: Quantity(3, 'm/s')
+
+  greeting:
+    check_units: strict
+    evaluate: Quantity('6V') / 2
+    expect: incompatible units (6 V and 2).
+
+  utensil:
+    check_units: strict
+    evaluate: 6 / Quantity('2A')
+    expect: incompatible units (6 and 2 A).
