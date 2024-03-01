@@ -1,5 +1,5 @@
-Unit Propagation — Simple-Minded Unit Propagation for QuantiPhy
-===============================================================
+Simple-Minded Unit Propagation for QuantiPhy
+============================================
 
 | Author: Ken Kundert
 | Version: 0.1
