@@ -51,8 +51,8 @@ import math
 product_sep = '-'
 quotient_sep = '/'
 
-__version__ = '0.0'
-__released__ = '2022-12-04'
+__version__ = '0.1'
+__released__ = '2024-03-01'
 
 # Simplifications {{{2
 SIMPLIFICATIONS = dict(
