@@ -45,8 +45,8 @@ Quantity.set_prefs(
 )
 
 # HELPERS {{{1
-# tokenize() {{{2
-def tokenize(entered):
+# _tokenize() {{{2
+def _tokenize(entered):
     # Basically this is a simple split on spaces except the entered string is 
     # first processed to add a leading space to operators when outside a quoted 
     # string to allow an operator to immediately follow a number or variable.
@@ -63,7 +63,7 @@ def tokenize(entered):
 
 # evaluate() {{{2
 def evaluate(entered):
-    for token in tokenize(entered):
+    for token in _tokenize(entered):
         if token == "+":
             stack.append(stack.pop() + stack.pop())
         elif token == "-":
