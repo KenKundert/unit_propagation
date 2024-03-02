@@ -7,8 +7,8 @@ Simple-Minded Unit Propagation for QuantiPhy
 .. image:: https://github.com/KenKundert/unit_propagation/actions/workflows/build.yaml/badge.svg
     :target: https://github.com/KenKundert/unit_propagation/actions/workflows/build.yaml
 
-.. image:: https://coveralls.io/repos/github/KenKundert/unit_propagation/badge.svg?branch=master
-    :target: https://coveralls.io/github/KenKundert/unit_propagation?branch=master
+.. image:: https://coveralls.io/repos/github/KenKundert/unit_propagation/badge.svg?branch=main
+    :target: https://coveralls.io/github/KenKundert/unit_propagation?branch=main
 
 .. image:: https://img.shields.io/pypi/v/unit_propagation.svg
     :target: https://pypi.python.org/pypi/unit_propagation
