@@ -4,9 +4,6 @@ Simple-Minded Unit Propagation for QuantiPhy
 .. image:: https://pepy.tech/badge/unit_propagation/month
     :target: https://pepy.tech/project/unit_propagation
 
-.. image:: https://img.shields.io/readthedocs/unit_propagation.svg
-   :target: https://unit_propagation.readthedocs.io/en/latest/?badge=latest
-
 .. image:: https://github.com/KenKundert/unit_propagation/actions/workflows/build.yaml/badge.svg
     :target: https://github.com/KenKundert/unit_propagation/actions/workflows/build.yaml
 
@@ -15,9 +12,6 @@ Simple-Minded Unit Propagation for QuantiPhy
 
 .. image:: https://img.shields.io/pypi/v/unit_propagation.svg
     :target: https://pypi.python.org/pypi/unit_propagation
-
-.. image:: https://anaconda.org/conda-forge/unit_propagation/badges/version.svg
-    :target: https://anaconda.org/conda-forge/unit_propagation
 
 .. image:: https://img.shields.io/pypi/pyversions/unit_propagation.svg
     :target: https://pypi.python.org/pypi/unit_propagation/
@@ -36,9 +30,8 @@ Even so, it shows promise for use in well controlled settings.
 
 Here is simple example::
 
-    >>> from unit_propagation import (
-    ...     UnitPropagatingQuantity as Quantity, QuantiPhyError
-    ... )
+    >>> from unit_propagation import UnitPropagatingQuantity as Quantity, QuantiPhyError
+
     >>> try:
     ...     v = Quantity("2.5V")
     ...     i = Quantity("100nA")
