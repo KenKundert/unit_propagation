@@ -39,20 +39,19 @@ Adds unit propagation to *QuantiPhy*.
 # SOFTWARE.
 
 # Imports {{{1
-from quantiphy import Quantity, IncompatibleUnits, QuantiPhyError, InvalidNumber
+from quantiphy import Quantity, QuantiPhyError, IncompatibleUnits, InvalidNumber
+import math
 import numbers
 import operator
-import math
 
 
 # Globals {{{1
+__version__ = '0.1'
+__released__ = '2024-03-01'
 # product_sep = self.narrow_non_breaking_space
 # product_sep = '⋅'
 product_sep = '-'
 quotient_sep = '/'
-
-__version__ = '0.1'
-__released__ = '2024-03-01'
 
 # Simplifications {{{2
 SIMPLIFICATIONS = dict(
@@ -65,7 +64,6 @@ SIMPLIFICATIONS = dict(
         ('rads', 'Hz'):  'rads/s',   # radial frequency
         ('(rads/s)', 's'):  'rads',  # radians
         ('(Hz/V)', 'V'): 'Hz',       # frequency
-        ('(J/K)', 'K'):  'J',        # joules
     },
     divide = {
         ('V', 'A'): 'Ω' ,            # resistance (to Ohm symbol)
