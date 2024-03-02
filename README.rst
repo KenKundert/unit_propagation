@@ -52,6 +52,6 @@ Operations can also involve integers, floats and strings::
     1.25 V
 
 Included in the package is a simple RPN calculator that allows you to explore 
-the capabilities and limitation of *unit propagation*.
+the capabilities and limitations of *unit propagation*.
 
 .. _QuantiPhy: https://quantiphy.readthedocs.io
