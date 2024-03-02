@@ -72,7 +72,7 @@ SIMPLIFICATIONS = dict(
         ('V', 'Ω'): 'A' ,            # current (from Ohm symbol)
         ('V', 'Ω'): 'A' ,            # current (from Greek Omega symbol)
         ('A', 'V'): 'Ʊ' ,            # conductance
-        ('',  's'): 'Hz ',           # frequency
+        ('',  's'): 'Hz',            # frequency
         ('', 'Hz'): 's' ,            # time
         ('J', 'C'): 'V' ,            # volts
         ('', 'Ω'): 'Ʊ',              # conductance (from Ohm symbol)
@@ -89,11 +89,13 @@ for section, rules in SIMPLIFICATIONS.items():
                 assert unit[:1] == "(" and unit[-1:] == ")", f"{unit} must be parenthesized."
 
 
-def add_simplifications(multiply=None, divide=None):
-    if multiply:
-        SIMPLIFICATIONS['multiply'].update(multiply)
-    if divide:
-        SIMPLIFICATIONS['divide'].update(divide)
+# def add_simplifications(multiply=None, divide=None):
+#     if multiply:
+#         SIMPLIFICATIONS['multiply'].update(multiply)
+#     if divide:
+#         SIMPLIFICATIONS['divide'].update(divide)
+#   Not ready for prime time.  Need to recheck parentheses and resort
+#   commutative operators after adding new simplifications
 
 
 # sort the multiply units to make it insensitive to order, also group as needed
@@ -177,7 +179,7 @@ class UnitPropagatingQuantity(Quantity):
 
         try:
             if self.check_units and self.units != other.units:
-                raise IncompatibleUnits(self.units, other.units)
+                raise IncompatibleUnits(self, other)
         except AttributeError:
             if self.check_units == 'strict':
                 raise IncompatibleUnits(other, self)
@@ -322,51 +324,30 @@ class UnitPropagatingQuantity(Quantity):
 
     # greater than or equal {{{3
     def __ge__(self, other):
-        if isinstance(other, str):
-            other = self.__class__(other)
-        if not isinstance(other, numbers.Number):
-            raise InvalidNumber(other)
+        return self._compare(other, operator.ge)
+
+    # equality operations {{{3
+    def _equality(self, other, op, on_failure):
+        try:
+            if isinstance(other, str):
+                other = self.__class__(other)
+            if not isinstance(other, numbers.Number):
+                raise InvalidNumber(other)
+        except InvalidNumber:
+            return on_failure
 
         try:
             if self.check_units and self.units != other.units:
-                raise IncompatibleUnits(self, other)
+                return on_failure
         except AttributeError:
             if self.check_units == 'strict':
-                raise IncompatibleUnits(self, other)
-        return self.real >= other
+                return on_failure
+        return op(self.real, other)
 
     # equal {{{3
     def __eq__(self, other):
-        try:
-            if isinstance(other, str):
-                other = self.__class__(other)
-            if not isinstance(other, numbers.Number):
-                raise InvalidNumber(other)
-        except InvalidNumber:
-            return False
+        return self._equality(other, operator.eq, False)
 
-        try:
-            if self.check_units and self.units != other.units:
-                raise IncompatibleUnits(self, other)
-        except AttributeError:
-            if self.check_units == 'strict':
-                raise IncompatibleUnits(self, other)
-        return self.real == other
-
-    # not equal {{{3
+    # equal {{{3
     def __ne__(self, other):
-        try:
-            if isinstance(other, str):
-                other = self.__class__(other)
-            if not isinstance(other, numbers.Number):
-                raise InvalidNumber(other)
-        except InvalidNumber:
-            return True
-
-        try:
-            if self.check_units and self.units != other.units:
-                raise IncompatibleUnits(self, other)
-        except AttributeError:
-            if self.check_units == 'strict':
-                raise IncompatibleUnits(self, other)
-        return self.real != other
+        return self._equality(other, operator.ne, True)

@@ -4,8 +4,37 @@
 # need to check simplifications
 
 test_unit_propagation:
-  # Addition {{{1
 
+  # Unary operators {{{1
+  uprise:
+    evaluate: +Quantity('1ns')
+    expect: Quantity('1ns')
+
+  relive:
+    evaluate: -Quantity('2V')
+    expect: Quantity('-2V')
+
+  homicide:
+    evaluate: abs(Quantity('-2V'))
+    expect: Quantity('2V')
+
+  elongate:
+    evaluate: round(Quantity('1.75V'))
+    expect: Quantity('2V')
+
+  server:
+    evaluate: trunc(Quantity('1.75V'))
+    expect: Quantity('1V')
+
+  vacuum:
+    evaluate: floor(Quantity('1.75V'))
+    expect: Quantity('1V')
+
+  rooftop:
+    evaluate: ceil(Quantity('1.75V'))
+    expect: Quantity('2V')
+
+  # Addition {{{1
   cranberry:
     evaluate: Quantity(2) + Quantity(1)
     expect: Quantity(3)
@@ -37,6 +66,22 @@ test_unit_propagation:
     evaluate: Quantity('2MHz') + Quantity(1e6, 'rads/s')
     expect: Quantity('3MHz')
 
+  sphinx:
+    evaluate: Quantity('2MHz') + '5MHz'
+    expect: Quantity('7MHz')
+
+  snobby:
+    evaluate: '13 MHz' + Quantity('2MHz')
+    expect: Quantity('15MHz')
+
+  devil:
+    evaluate: Quantity('3kΩ') + '2ns'
+    expect: incompatible units (3 kΩ and 2 ns).
+
+  swelter:
+    evaluate: '3kΩ' + Quantity('2ns')
+    expect: incompatible units (2 ns and 3 kΩ).
+
   bumble:
     check_units: strict
     evaluate: Quantity('2MHz') + 1e6
@@ -48,7 +93,6 @@ test_unit_propagation:
     expect: incompatible units (2000000.0 and 1 MHz).
 
   # Subtraction {{{1
-
   detective:
     evaluate: Quantity(3) - Quantity(2)
     expect: Quantity(1)
@@ -75,6 +119,14 @@ test_unit_propagation:
     evaluate: Quantity('3MHz') - Quantity(2e6, 'rads/s')
     expect: incompatible units (3 MHz and 2 Mrads/s).
 
+  tenant:
+    evaluate: Quantity('2MHz') - None
+    expect: None: not a valid number.
+
+  cowman:
+    evaluate: None - Quantity('2MHz')
+    expect: None: not a valid number.
+
   officiate:
     check_units: no
     evaluate: Quantity('3MHz') - Quantity(2e6, 'rads/s')
@@ -91,7 +143,6 @@ test_unit_propagation:
     expect: incompatible units (2000000.0 and 2 MHz).
 
   # Multiplication {{{1
-
   spittoon:
     evaluate: Quantity(3) * Quantity(2)
     expect: Quantity(6)
@@ -128,8 +179,24 @@ test_unit_propagation:
     evaluate: 2e6 * Quantity('2A')
     expect: incompatible units (2 A and 2000000.0).
 
-  # Division {{{1
+  meteor:
+    check_units: strict
+    evaluate: Quantity('3_m') * Quantity('4_m')
+    expect: Quantity(12, 'm²')
 
+  sextet:
+    evaluate: Quantity('200 MHz') * '500mV'
+    expect: Quantity('100MHz-V')
+
+  immerse:
+    evaluate: '200 MHz' * Quantity('500mV')
+    expect: Quantity('100MHz-V')
+
+  spaceman:
+    evaluate: Quantity('200 MHz') * None
+    expect: None: not a valid number.
+
+  # Division {{{1
   portable:
     evaluate: Quantity(6) / Quantity(2)
     expect: Quantity(3)
@@ -169,3 +236,280 @@ test_unit_propagation:
     check_units: strict
     evaluate: 6 / Quantity('2A')
     expect: incompatible units (6 and 2 A).
+
+  specimen:
+    evaluate: Quantity(6.28318531e6, "rads/s") / Quantity(6.28318531, 'rads')
+    expect: Quantity('1 MHz')
+
+  overcoat:
+    evaluate: 1 / Quantity('1ns')
+    expect: Quantity('1 GHz')
+
+  debrief:
+    evaluate: Quantity('1kg') / Quantity('25_cc')
+    expect: Quantity('40 g/cc')
+
+  drier:
+    evaluate: 1 / Quantity('1mmho')
+    expect: Quantity('1 kmho⁻¹')
+
+  demon:
+    evaluate: Quantity(100, 'rads/s') / Quantity(100, 'J-s')
+    expect: Quantity(1, '(rads/s)/(J-s)')
+
+  great:
+    evaluate: Quantity('200 MHz') / '500mV'
+    expect: Quantity('400MHz/V')
+
+  cranefly:
+    evaluate: Quantity(200) / Quantity(0.5)
+    expect: Quantity(400)
+
+  playgroup:
+    evaluate: 200 / Quantity(0.5)
+    expect: Quantity(400)
+
+  sideswipe:
+    evaluate: Quantity(200) / 0.5
+    expect: Quantity(400)
+
+  jaguar:
+    evaluate: '200' / Quantity(0.5)
+    expect: Quantity(400)
+
+  increase:
+    evaluate: Quantity(200) / '0.5'
+    expect: Quantity(400)
+
+  sickle:
+    evaluate: '200 MHz' / Quantity('500mV')
+    expect: Quantity('400MHz/V')
+
+  hinder:
+    evaluate: Quantity('200 MHz') / None
+    expect: None: not a valid number.
+
+  magnify:
+    evaluate: None / Quantity('200 MHz')
+    expect: None: not a valid number.
+
+  # Equality {{{1
+  headman:
+    evaluate: Quantity(100, 'V') == Quantity(100, 'V')
+    expect: True
+
+  walker:
+    evaluate: Quantity(100, 'V') == '100 V'
+    expect: True
+
+  smack:
+    evaluate: Quantity(100, 'V') == Quantity(10, 'V')
+    expect: False
+
+  avert:
+    evaluate: Quantity(100, 'V') == Quantity(100, 'A')
+    expect: False
+
+  wingspan:
+    evaluate: Quantity(100, 'V') == 100
+    expect: True
+
+  playroom:
+    evaluate: Quantity(100, 'V') == 10
+    expect: False
+
+  shawl:
+    check_units: strict
+    evaluate: Quantity(100, 'V') == 100
+    expect: False
+
+  evade:
+    evaluate: Quantity(100, 'V') == None
+    expect: False
+
+  # Inequality {{{1
+  dawdle:
+    evaluate: Quantity(100, 'V') != Quantity(100, 'V')
+    expect: False
+
+  become:
+    evaluate: Quantity(100, 'V') != '100 V'
+    expect: False
+
+  bloody:
+    evaluate: Quantity(100, 'V') != Quantity(10, 'V')
+    expect: True
+
+  embrace:
+    evaluate: Quantity(100, 'V') != Quantity(100, 'A')
+    expect: True
+
+  charm:
+    evaluate: Quantity(100, 'V') != 100
+    expect: False
+
+  crimson:
+    evaluate: Quantity(100, 'V') != 10
+    expect: True
+
+  squash:
+    check_units: strict
+    evaluate: Quantity(100, 'V') != 100
+    expect: True
+
+  catechism:
+    evaluate: Quantity(100, 'V') != None
+    expect: True
+
+  # Greater than {{{1
+  motel:
+    evaluate: Quantity(100, 'V') > Quantity(100, 'V')
+    expect: False
+
+  rupture:
+    evaluate: Quantity(100, 'V') > '100 V'
+    expect: False
+
+  grenade:
+    evaluate: Quantity(100, 'V') > Quantity(10, 'V')
+    expect: True
+
+  printout:
+    evaluate: Quantity(100, 'V') > Quantity(1000, 'V')
+    expect: False
+
+  groove:
+    evaluate: Quantity(100, 'V') > Quantity(100, 'A')
+    expect: incompatible units (100 V and 100 A).
+
+  hairdryer:
+    evaluate: Quantity(100, 'V') > 100
+    expect: False
+
+  gourmet:
+    evaluate: Quantity(100, 'V') > 10
+    expect: True
+
+  brochure:
+    check_units: strict
+    evaluate: Quantity(100, 'V') > 100
+    expect: incompatible units (100 V and 100).
+
+  interject:
+    evaluate: Quantity(100, 'V') > None
+    expect: None: not a valid number.
+
+  # Less than {{{1
+  policy:
+    evaluate: Quantity(100, 'V') < Quantity(100, 'V')
+    expect: False
+
+  eulogize:
+    evaluate: Quantity(100, 'V') < '100 V'
+    expect: False
+
+  sense:
+    evaluate: Quantity(100, 'V') < Quantity(10, 'V')
+    expect: False
+
+  ditch:
+    evaluate: Quantity(100, 'V') < Quantity(1000, 'V')
+    expect: True
+
+  workshop:
+    evaluate: Quantity(100, 'V') < Quantity(100, 'A')
+    expect: incompatible units (100 V and 100 A).
+
+  stable:
+    evaluate: Quantity(100, 'V') < 100
+    expect: False
+
+  stain:
+    evaluate: Quantity(10, 'V') < 100
+    expect: True
+
+  broil:
+    check_units: strict
+    evaluate: Quantity(100, 'V') < 100
+    expect: incompatible units (100 V and 100).
+
+  brunch:
+    evaluate: Quantity(100, 'V') < None
+    expect: None: not a valid number.
+
+  # Greater than or equal to {{{1
+  relax:
+    evaluate: Quantity(100, 'V') >= Quantity(100, 'V')
+    expect: True
+
+  hobble:
+    evaluate: Quantity(100, 'V') >= '100 V'
+    expect: True
+
+  subsidy:
+    evaluate: Quantity(100, 'V') >= Quantity(10, 'V')
+    expect: True
+
+  duplicate:
+    evaluate: Quantity(100, 'V') >= Quantity(1000, 'V')
+    expect: False
+
+  common:
+    evaluate: Quantity(100, 'V') >= Quantity(100, 'A')
+    expect: incompatible units (100 V and 100 A).
+
+  peasant:
+    evaluate: Quantity(100, 'V') >= 100
+    expect: True
+
+  yuppie:
+    evaluate: Quantity(100, 'V') >= 10
+    expect: True
+
+  provider:
+    check_units: strict
+    evaluate: Quantity(100, 'V') >= 100
+    expect: incompatible units (100 V and 100).
+
+  coarse:
+    evaluate: Quantity(100, 'V') >= None
+    expect: None: not a valid number.
+
+  # Less than or equal to {{{1
+  negligee:
+    evaluate: Quantity(100, 'V') <= Quantity(100, 'V')
+    expect: True
+
+  locution:
+    evaluate: Quantity(100, 'V') <= '100 V'
+    expect: True
+
+  dairy:
+    evaluate: Quantity(100, 'V') <= Quantity(10, 'V')
+    expect: False
+
+  hoodwink:
+    evaluate: Quantity(100, 'V') <= Quantity(1000, 'V')
+    expect: True
+
+  layer:
+    evaluate: Quantity(100, 'V') <= Quantity(100, 'A')
+    expect: incompatible units (100 V and 100 A).
+
+  torso:
+    evaluate: Quantity(100, 'V') <= 100
+    expect: True
+
+  pause:
+    evaluate: Quantity(10, 'V') <= 100
+    expect: True
+
+  doodle:
+    check_units: strict
+    evaluate: Quantity(100, 'V') <= 100
+    expect: incompatible units (100 V and 100).
+
+  patronize:
+    evaluate: Quantity(100, 'V') <= None
+    expect: None: not a valid number.
+

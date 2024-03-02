@@ -5,6 +5,14 @@ from textwrap import dedent
 from unit_propagation import (
     UnitPropagatingQuantity, InvalidNumber, IncompatibleUnits
 )
+import math
+
+
+math_funcs = dict(
+    ceil = math.ceil,
+    floor = math.floor,
+    trunc = math.trunc
+)
 
 def to_bool(s):
     if isinstance(s, str):
@@ -41,16 +49,22 @@ def test_unit_propagation(name, execute, evaluate, expect, check_units):
         # this is a hack
         # it is necessary as long as check_units is not a real preference
     with_quantity = dict(Quantity=UnitPropagatingQuantity)
+    with_quantity.update(math_funcs)
     strictly = dict(Quantity=StrictQuantity)
+    strictly.update(math_funcs)
     try:
         if execute:
             locals = {}
             exec(execute, with_quantity, locals)
             assert eval(expect, strictly, locals)
         else:
-            #assert eval(evaluate, with_quantity) == eval(expect, strictly)
             try:
-                assert eval(expect, strictly) == eval(evaluate, with_quantity), name
+                result = eval(evaluate, with_quantity)
+                expected = eval(expect, strictly)
+                if type(expected) is bool:
+                    assert expected == result, name
+                else:
+                    assert expected.is_close(result, check_units=True), name
             except SyntaxError:
                 assert expect != eval(evaluate, with_quantity), name
     except (InvalidNumber, IncompatibleUnits) as e:

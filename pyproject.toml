@@ -2,7 +2,7 @@
 name = "unit_propagation"
 version = "0.1"
 description = "physical quantities (numbers with units)"
-# readme = "README.rst"
+readme = "README.rst"
 keywords = [
     "quantities",
     "physical quantity",
