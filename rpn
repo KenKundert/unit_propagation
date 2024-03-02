@@ -23,9 +23,7 @@ Examples:
 
 # IMPORTS {{{1
 from docopt import docopt
-from unit_propagation import (
-    UnitPropagatingQuantity as Quantity, QuantiPhyError
-)
+from unit_propagation import UnitPropagatingQuantity as Quantity, QuantiPhyError
 from inform import Color, Error, display, error, terminate
 import math
 
@@ -42,7 +40,7 @@ Quantity.set_prefs(
     map_sf = Quantity.map_sf_to_greek,
     preferred_units = {
         "Ω": "Ohm Ohms Ω",
-        "Ʊ": "mhos mho  Siemens Siemen",
+        "Ʊ": "mhos mho Siemens Siemen",
     }
 )
 
@@ -89,7 +87,7 @@ def evaluate(entered):
         elif token.startswith("="):
             variables[token[1:]] = stack[-1]
         else:
-            # QuantiPhy only applies preferred units on output.
+            # QuantiPhy only applies preferred units upon output.
             # Force the conversion on input.
             q = Quantity(token)
             q.units = q._preferred_units.get(q.units, q.units)
@@ -97,19 +95,17 @@ def evaluate(entered):
     return stack[-1]
 
 # MAIN {{{1
-cmdline = docopt(__doc__)
-while True:
-    try:
-        entered = input(f"{highlight(prompt)}: ")
-    except (EOFError, KeyboardInterrupt, SystemError):
-        display()
-        terminate()
-    try:
-        prompt = evaluate(entered)
-    except QuantiPhyError as e:
-        error(e)
-    except IndexError as e:
-        error(e)
-
-
-
+if __name__ == "__main__":
+    cmdline = docopt(__doc__)
+    while True:
+        try:
+            entered = input(f"{highlight(prompt)}: ")
+        except (EOFError, KeyboardInterrupt, SystemError):
+            display()
+            terminate()
+        try:
+            prompt = evaluate(entered)
+        except QuantiPhyError as e:
+            error(e)
+        except IndexError as e:
+            error(e)
