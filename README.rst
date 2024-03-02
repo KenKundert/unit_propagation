@@ -16,17 +16,15 @@ Simple-Minded Unit Propagation for QuantiPhy
 .. image:: https://img.shields.io/pypi/pyversions/unit_propagation.svg
     :target: https://pypi.python.org/pypi/unit_propagation/
 
-
-
 | Author: Ken Kundert
 | Version: 0.1
 | Released: 2024-03-01
 |
 
 This is a package used to experiment with adding unit propagation to QuantiPhy_.  
-It currently employs simple-minded simplification rules that are relatively easy 
-to fool.  Also, there is a strong emphasis on simple electrical unit scenarios.  
-Even so, it shows promise for use in well controlled settings.
+It currently employs simple-minded simplification rules that handle many common 
+cases but not all.  Also, there is a strong emphasis on simple electrical unit 
+scenarios.  Even so, it shows promise for use in well controlled settings.
 
 Here is simple example::
 
