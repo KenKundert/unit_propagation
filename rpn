@@ -41,8 +41,8 @@ highlight = Color("magenta")
 Quantity.set_prefs(
     map_sf = Quantity.map_sf_to_greek,
     preferred_units = {
-        "Ω": "ohm ohms Ω",
-        "Ʊ": "mhos mho",
+        "Ω": "Ohm Ohms Ω",
+        "Ʊ": "mhos mho  Siemens Siemen",
     }
 )
 
