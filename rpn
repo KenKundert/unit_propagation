@@ -6,7 +6,7 @@ RPN calculator
 Usage:
     rpn
 
-Supports 4 basic operators (+. -, */ /) along with recip & dup.
+Supports 4 basic operators (+. -, */ /) along with chs, recip, swap & dup.
 Save to variable using: =name.
 
 Examples:
@@ -24,7 +24,7 @@ Examples:
 # IMPORTS {{{1
 from docopt import docopt
 from unit_propagation import UnitPropagatingQuantity as Quantity, QuantiPhyError
-from inform import Color, Error, display, error, terminate
+from inform import Color, Error, display, error, full_stop, terminate
 import math
 
 # GLOBALS {{{1
@@ -39,8 +39,8 @@ highlight = Color("magenta")
 Quantity.set_prefs(
     map_sf = Quantity.map_sf_to_greek,
     preferred_units = {
-        "Ω": "Ohm Ohms Ω",
-        "Ʊ": "mhos mho Siemens Siemen",
+        "Ω": "Ohm Ohms ohm ohms Ω",
+        "Ʊ": "Mho Mhos mho mhos Siemens Siemen",
     }
 )
 
@@ -80,8 +80,12 @@ def evaluate(entered):
             stack[-1].units = token[1:-1]
         elif token in variables:
             stack.append(variables[token])
+        elif token == "chs":
+            stack.append(-stack.pop())
         elif token == "recip":
             stack.append(1 / stack.pop())
+        elif token == "swap":
+            stack[-2], stack[-1] = stack[-1], stack[-2]
         elif token == "dup":
             stack.append(stack[-1])
         elif token.startswith("="):
@@ -104,8 +108,11 @@ if __name__ == "__main__":
             display()
             terminate()
         try:
+            prev_stack = stack.copy()
             prompt = evaluate(entered)
         except QuantiPhyError as e:
-            error(e)
+            stack = prev_stack
+            error(full_stop(e))
         except IndexError as e:
-            error(e)
+            stack = prev_stack
+            error(full_stop(e).replace('list', 'stack'))

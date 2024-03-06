@@ -56,27 +56,29 @@ quotient_sep = '/'
 # Simplifications {{{2
 SIMPLIFICATIONS = dict(
     multiply = {
-        ('V', 'A'):      'W',        # power
-        ('Ω', 'A'):      'V',        # voltage (from Ohm symbol)
-        ('Ω', 'A'):      'V',        # voltage (from Greek Omega symbol)
-        ('Ʊ', 'V'):      'A',        # amperes
-        ('m', 'm'):      'm²',       # area
-        ('rads', 'Hz'):  'rads/s',   # radial frequency
-        ('(rads/s)', 's'):  'rads',  # radians
-        ('(Hz/V)', 'V'): 'Hz',       # frequency
+        ('V', 'A'):           'W',        # power
+        ('Ω', 'A'):           'V',        # voltage (from Ohm symbol)
+        ('Ω', 'A'):           'V',        # voltage (from Greek Omega symbol)
+        ('Ʊ', 'V'):           'A',        # amperes
+        ('rads', 'Hz'):       'rads/s',   # radial frequency
+        ('(rads/s)', 's'):     'rads',    # radians
+        ('(Hz/V)', 'V'):      'Hz',       # frequency
+        ('m', 'm'):           'm²',       # area
+        ('(m²)', 'm'):        'm³',       # volume
     },
     divide = {
-        ('V', 'A'): 'Ω' ,            # resistance (to Ohm symbol)
-        ('V', 'Ω'): 'A' ,            # current (from Ohm symbol)
-        ('V', 'Ω'): 'A' ,            # current (from Greek Omega symbol)
-        ('A', 'V'): 'Ʊ' ,            # conductance
-        ('',  's'): 'Hz',            # frequency
-        ('', 'Hz'): 's' ,            # time
-        ('J', 'C'): 'V' ,            # volts
-        ('', 'Ω'): 'Ʊ',              # conductance (from Ohm symbol)
-        ('', 'Ω'): 'Ʊ',              # conductance (from Ohm symbol)
-        ('', 'Ʊ'): 'Ω',              # resistance (to Ohm symbol)
-        ('(rads/s)', 'rads'): 'Hz',  # hertz
+        ('V', 'A'):           'Ω',        # resistance (to Ohm symbol)
+        ('V', 'Ω'):           'A',        # current (from Ohm symbol)
+        ('V', 'Ω'):           'A',        # current (from Greek Omega symbol)
+        ('A', 'V'):           'Ʊ',        # conductance
+        ('',  's'):           'Hz',       # frequency
+        ('', 'Hz'):           's',        # time
+        ('', 'Ω'):            'Ʊ',        # conductance (from Ohm symbol)
+        ('', 'Ω'):            'Ʊ',        # conductance (from Ohm symbol)
+        ('', 'Ʊ'):            'Ω',        # resistance (to Ohm symbol)
+        ('(rads/s)', 'rads'): 'Hz',       # hertz
+        ('(m²)', 'm'):        'm',        # length
+        ('m', 'm'):            '',        # length ratio (unitless)
     },
 )
 # check for invalid units (a unit that contains an operator must be parenthesized)
