@@ -1,6 +1,10 @@
 # Unit Propagation — Simple Minded Unit Propagtaion for QuantiPhy
 # encoding: utf8
 
+# Currently the code does not distinguish between unitless numbers (units == '')
+# and numbers that cannot carry units, like floats.
+# It might make sense to distinguish the two
+
 # Description {{{1
 """
 Adds unit propagation to *QuantiPhy*.
@@ -55,16 +59,20 @@ quotient_sep = '/'
 
 # Simplifications {{{2
 SIMPLIFICATIONS = dict(
+    additive = {
+        ('°C', 'K'):          'K',        # Kelvin
+        ('K', 'K'):           None,       # error
+    },
     multiply = {
         ('V', 'A'):           'W',        # power
         ('Ω', 'A'):           'V',        # voltage (from Ohm symbol)
         ('Ω', 'A'):           'V',        # voltage (from Greek Omega symbol)
         ('Ʊ', 'V'):           'A',        # amperes
         ('rads', 'Hz'):       'rads/s',   # radial frequency
-        ('(rads/s)', 's'):     'rads',    # radians
-        ('(Hz/V)', 'V'):      'Hz',       # frequency
+        ('rads/s', 's'):      'rads',    # radians
+        ('Hz/V', 'V'):        'Hz',       # frequency
         ('m', 'm'):           'm²',       # area
-        ('(m²)', 'm'):        'm³',       # volume
+        ('m²', 'm'):          'm³',       # volume
     },
     divide = {
         ('V', 'A'):           'Ω',        # resistance (to Ohm symbol)
@@ -76,17 +84,11 @@ SIMPLIFICATIONS = dict(
         ('', 'Ω'):            'Ʊ',        # conductance (from Ohm symbol)
         ('', 'Ω'):            'Ʊ',        # conductance (from Ohm symbol)
         ('', 'Ʊ'):            'Ω',        # resistance (to Ohm symbol)
-        ('(rads/s)', 'rads'): 'Hz',       # hertz
-        ('(m²)', 'm'):        'm',        # length
-        ('m', 'm'):            '',        # length ratio (unitless)
+        ('rads/s', 'rads'):   'Hz',       # hertz
+        ('m²', 'm'):          'm',        # length
+        ('m', 'm'):           '',         # length ratio (unitless)
     },
 )
-# check for invalid units (a unit that contains an operator must be parenthesized)
-for section, rules in SIMPLIFICATIONS.items():
-    for units in rules.keys():
-        for unit in units:
-            if unit and not unit.isidentifier():
-                assert unit[:1] == "(" and unit[-1:] == ")", f"{unit} must be parenthesized."
 
 
 # def add_simplifications(multiply=None, divide=None):
@@ -98,13 +100,6 @@ for section, rules in SIMPLIFICATIONS.items():
 #   commutative operators after adding new simplifications
 
 
-# sort the multiply units to make it insensitive to order, also group as needed
-SIMPLIFICATIONS["multiply"] = {
-    tuple(sorted(f)): t
-    for f, t in SIMPLIFICATIONS["multiply"].items()
-}
-
-
 # Utilities {{{1
 # group() {{{2
 def group(units, aggressive=False):
@@ -113,6 +108,29 @@ def group(units, aggressive=False):
     if aggressive and product_sep in units:
         return f"({units})"
     return units
+
+
+# communitive_group() {{{2
+def normalize_units(unit0, unit1, type):
+    if type in ['additive', 'multiply']:
+        units = sorted([unit0, unit1])
+        return group(units[0]), group(units[1])
+    assert type == 'divide'
+    return group(unit0), group(unit1, aggressive=True)
+
+
+# normalize_simplifications {{{2
+def normalize_simplifications(given):
+    new = {}
+    for section, rules in given.items():
+        new[section] = {}
+        for units, simplification in rules.items():
+            units = normalize_units(*units, section)
+            new[section][units] = simplification
+    return new
+
+
+SIMPLIFICATIONS = normalize_simplifications(SIMPLIFICATIONS)
 
 
 # UnitPropagatingQuantity class {{{1
@@ -150,58 +168,93 @@ class UnitPropagatingQuantity(Quantity):
 
     # generic binary operator {{{3
     # handles simple cases where units must match
-    def _binary_operator(self, other, op):
+    def _additive_operator(self, other, op):
         if isinstance(other, str):
             other = self.__class__(other)
         if not isinstance(other, numbers.Number):
             raise InvalidNumber(other)
 
+        # extract the units
         try:
-            if self.check_units and self.units != other.units:
-                raise IncompatibleUnits(self, other)
+            self_units = self.units
         except AttributeError:
-            if self.check_units == 'strict':
-                raise IncompatibleUnits(
-                    getattr(self, 'units', None),
-                    getattr(other, 'units', None)
-                )
+            self_units = ''
+        try:
+            other_units = other.units
+        except AttributeError:
+            other_units = ''
 
-        new = self.__class__(op(self.real, other.real), units=self.units)
+        # resolve the units
+        units = tuple(sorted([group(self_units), group(other_units)]))
+        units = normalize_units(self_units, other_units, 'additive')
+        simplifications = SIMPLIFICATIONS['additive']
+        if units in simplifications:
+            units = simplifications[units]
+            if units is None:
+                raise IncompatibleUnits(self, other)
+        else:
+            if self.check_units and self_units != other_units:
+                if self.check_units == 'strict':
+                    raise IncompatibleUnits(self, other)
+                if self_units and other_units:
+                    raise IncompatibleUnits(self, other)
+            units = self_units or other_units
+
+        new = self.__class__(op(self.real, other.real), units=units)
         new._inherit_attributes(self)
         return new
 
     # handles simple cases where units must match
-    def _reflected_binary_operator(self, other, op):
+    def _reflected_additive_operator(self, other, op):
         if isinstance(other, str):
             other = self.__class__(other)
         if not isinstance(other, numbers.Number):
             raise InvalidNumber(other)
 
+        # extract the units
         try:
-            if self.check_units and self.units != other.units:
-                raise IncompatibleUnits(self, other)
+            self_units = self.units
         except AttributeError:
-            if self.check_units == 'strict':
-                raise IncompatibleUnits(other, self)
-        new = self.__class__(op(other.real, self.real), units=self.units)
+            self_units = ''
+        try:
+            other_units = other.units
+        except AttributeError:
+            other_units = ''
+
+        # resolve the units
+        units = normalize_units(self_units, other_units, 'additive')
+        simplifications = SIMPLIFICATIONS['additive']
+        if units in simplifications:
+            units = simplifications[units]
+            if units is None:
+                raise IncompatibleUnits(self, other)
+        else:
+            if self.check_units and self_units != other_units:
+                if self.check_units == 'strict':
+                    raise IncompatibleUnits(self, other)
+                if self_units and other_units:
+                    raise IncompatibleUnits(self, other)
+            units = self_units or other_units
+
+        new = self.__class__(op(other.real, self.real), units=units)
         new._inherit_attributes(self)
         return new
 
     # add {{{3
     def __add__(self, addend):
-        return self._binary_operator(addend, operator.add)
+        return self._additive_operator(addend, operator.add)
 
     def __radd__(self, addend):
-        return self._reflected_binary_operator(addend, operator.add)
+        return self._reflected_additive_operator(addend, operator.add)
 
     __iadd__ = __add__
 
     # subtract {{{3
     def __sub__(self, subtrahend):
-        return self._binary_operator(subtrahend, operator.sub)
+        return self._additive_operator(subtrahend, operator.sub)
 
     def __rsub__(self, minuend):
-        return self._reflected_binary_operator(minuend, operator.sub)
+        return self._reflected_additive_operator(minuend, operator.sub)
 
     __isub__ = __sub__
 
@@ -212,21 +265,24 @@ class UnitPropagatingQuantity(Quantity):
         if not isinstance(multiplicand, numbers.Number):
             raise InvalidNumber(multiplicand)
 
-        # units
+        # extract the units
         try:
-            units = tuple(sorted([group(self.units), group(multiplicand.units)]))
+            self_units = self.units
         except AttributeError:
-            units = (self.units,)
-            if self.check_units == 'strict':
-                raise IncompatibleUnits(self, multiplicand)
+            self_units = ''
+        try:
+            multiplicand_units = multiplicand.units
+        except AttributeError:
+            multiplicand_units = ''
+
+        # resolve the units
+        units = normalize_units(self_units, multiplicand_units, 'multiply')
         simplifications = SIMPLIFICATIONS['multiply']
         if units in simplifications:
             units = simplifications[units]
         else:
             units = product_sep.join(u for u in units if u)
 
-        # this is not quite right, perhaps when defining the simplifications I
-        # could also define new classes for the product
         new = self.__class__(self.real * multiplicand.real, units=units)
         new._inherit_attributes(self)
         return new
@@ -241,18 +297,26 @@ class UnitPropagatingQuantity(Quantity):
         if not isinstance(divisor, numbers.Number):
             raise InvalidNumber(divisor)
 
-        # units
+        # extract the units
         try:
-            units = (group(self.units), group(divisor.units, True))
+            self_units = self.units
         except AttributeError:
-            units = (self.units, '')
-            if self.check_units == 'strict':
-                raise IncompatibleUnits(self, divisor)
+            self_units = ''
+        try:
+            divisor_units = divisor.units
+        except AttributeError:
+            divisor_units = ''
+
+        # resolve the units
+        units = normalize_units(self_units, divisor_units, 'divide')
         simplifications = SIMPLIFICATIONS['divide']
         if units in simplifications:
             units = simplifications[units]
         elif units[0]:
-            units = quotient_sep.join(units) if units[1] else units[0]
+            if units[0] == units[1]:
+                units = ''
+            else:
+                units = quotient_sep.join(units) if units[1] else units[0]
         elif units[1]:
             units = units[1] + '⁻¹'
         else:

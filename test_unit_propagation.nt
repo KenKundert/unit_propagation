@@ -85,12 +85,12 @@ test_unit_propagation:
   bumble:
     check_units: strict
     evaluate: Quantity('2MHz') + 1e6
-    expect: incompatible units (Hz and None).
+    expect: incompatible units (2 MHz and 1000000.0).
 
   sniper:
     check_units: strict
     evaluate: 2e6 + Quantity('1MHz')
-    expect: incompatible units (2000000.0 and 1 MHz).
+    expect: incompatible units (1 MHz and 2000000.0).
 
   # Subtraction {{{1
   detective:
@@ -135,12 +135,12 @@ test_unit_propagation:
   injury:
     check_units: strict
     evaluate: Quantity('3MHz') - 2e6
-    expect: incompatible units (Hz and None).
+    expect: incompatible units (3 MHz and 2000000.0).
 
   psych:
     check_units: strict
     evaluate: 2e6 - Quantity('2MHz')
-    expect: incompatible units (2000000.0 and 2 MHz).
+    expect: incompatible units (2 MHz and 2000000.0).
 
   # Multiplication {{{1
   spittoon:
@@ -216,6 +216,10 @@ test_unit_propagation:
   viscount:
     evaluate: Quantity(6) / Quantity('2A')
     expect: Quantity('3 A⁻¹')
+
+  jackass:
+    evaluate: Quantity('$1M') / Quantity('$1k')
+    expect: Quantity('1000')
 
   deity:
     execute:

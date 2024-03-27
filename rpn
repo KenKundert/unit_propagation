@@ -7,18 +7,21 @@ Usage:
     rpn
 
 Supports 4 basic operators (+. -, */ /) along with chs, recip, swap & dup.
+Supports si and fix formats, add integer to end to specify precision
 Save to variable using: =name.
 
 Examples:
     : 5V 3V-
-    2V: =v
-    2V: 100kohms
+    2 V: =v
+    2 V: 100kohms
     100 kΩ: /
     20 µA: v*
     40 µW: 6.2832M "rads/s"
     6.28 Mrads/s: 2pi/
     1 MHz: recip
-    1 µs
+    1 µs: $1M
+    $1M: fix2
+    $1,000,000.00:
 """
 
 # IMPORTS {{{1
@@ -26,9 +29,11 @@ from docopt import docopt
 from unit_propagation import UnitPropagatingQuantity as Quantity, QuantiPhyError
 from inform import Color, Error, display, error, full_stop, terminate
 import math
+import re
 
 # GLOBALS {{{1
-prompt = ""
+empty = ""
+prompt = empty
 stack = []
 variables = {
     "pi": Quantity(math.pi),
@@ -36,17 +41,32 @@ variables = {
     "2pi": Quantity(math.tau, "rads"),
 }
 highlight = Color("magenta")
+precision = None
+forms = dict(
+    si = dict(form='si'),
+    sia = dict(form='sia'),
+    eng = dict(form='eng'),
+    fix = dict(form='fixed', strip_zeros=False, show_commas=True),
+)
+    # these are quantiphy's available forms
+form = "si"
+form_pattern = f"({'|'.join(forms.keys())})([0-9]*)"
+is_form = re.compile(form_pattern)
+
 Quantity.set_prefs(
     map_sf = Quantity.map_sf_to_greek,
     preferred_units = {
         "Ω": "Ohm Ohms ohm ohms Ω",
         "Ʊ": "Mho Mhos mho mhos Siemens Siemen",
-    }
+        "°C": "dC",
+        "°F": "dF",
+    },
+    known_units = "K",
 )
 
 # HELPERS {{{1
-# _tokenize() {{{2
-def _tokenize(entered):
+# tokenize() {{{2
+def tokenize(entered):
     # Basically this is a simple split on spaces except the entered string is 
     # first processed to add a leading space to operators when outside a quoted 
     # string to allow an operator to immediately follow a number or variable.
@@ -61,9 +81,20 @@ def _tokenize(entered):
             chars.append(char)
     return ''.join(chars).split()
 
+# is_format() {{{2
+def is_format(token):
+    match = is_form.match(token)
+    if match:
+        form, prec = match.group(1, 2)
+        preferences = forms.get(form, form)
+        if prec:
+            preferences['prec'] = int(prec)
+        Quantity.set_prefs(**preferences)
+        return True
+
 # evaluate() {{{2
 def evaluate(entered):
-    for token in _tokenize(entered):
+    for token in tokenize(entered):
         if token == "+":
             stack.append(stack.pop() + stack.pop())
         elif token == "-":
@@ -90,13 +121,15 @@ def evaluate(entered):
             stack.append(stack[-1])
         elif token.startswith("="):
             variables[token[1:]] = stack[-1]
+        elif is_format(token):
+            pass  # format is set in is_format()
         else:
             # QuantiPhy only applies preferred units upon output.
             # Force the conversion on input.
             q = Quantity(token)
             q.units = q._preferred_units.get(q.units, q.units)
             stack.append(q)
-    return stack[-1]
+    return stack[-1] if stack else empty
 
 # MAIN {{{1
 if __name__ == "__main__":
