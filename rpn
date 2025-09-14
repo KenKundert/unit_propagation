@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # USAGE {{{1
 """
 RPN calculator
@@ -6,7 +7,7 @@ RPN calculator
 Usage:
     rpn
 
-Supports 4 basic operators (+. -, */ /) along with chs, recip, swap & dup.
+Supports 4 basic operators (+. -, */ /) along with ||, chs, recip, swap & dup.
 Supports si and fix formats, add integer to end to specify precision
 Save to variable using: =name.
 
@@ -26,20 +27,27 @@ Examples:
 
 # IMPORTS {{{1
 from docopt import docopt
-from unit_propagation import UnitPropagatingQuantity as Quantity, QuantiPhyError
-from inform import Color, Error, display, error, full_stop, terminate
+from unit_propagation import (
+    UnitPropagatingQuantity as Quantity, QuantiPhyError, add_simplifications
+)
+from inform import (
+    Color, Error, columns, cull, dedent, display, error, fatal, full_stop,
+    join, os_error, terminate
+)
+from appdirs import user_config_dir
+from voluptuous import Schema, Invalid, MultipleInvalid, Required
+import nestedtext as nt
+from voluptuous_errors import report_voluptuous_errors
+from pathlib import Path
 import math
 import re
+
 
 # GLOBALS {{{1
 empty = ""
 prompt = empty
 stack = []
-variables = {
-    "pi": Quantity(math.pi),
-    "tau": Quantity(math.tau, "rads"),
-    "2pi": Quantity(math.tau, "rads"),
-}
+variables = {}
 highlight = Color("magenta")
 precision = None
 forms = dict(
@@ -47,105 +55,369 @@ forms = dict(
     sia = dict(form='sia'),
     eng = dict(form='eng'),
     fix = dict(form='fixed', strip_zeros=False, show_commas=True),
+    bin = dict(form='binary'),
 )
     # these are quantiphy's available forms
-form = "si"
-form_pattern = f"({'|'.join(forms.keys())})([0-9]*)"
-is_form = re.compile(form_pattern)
+format = "fix2"
+format_pattern = f"({'|'.join(forms.keys())})([0-9]*)"
+is_format = re.compile(format_pattern)
+split_pattern = r'"[^"]*"|\S+'
+splitter = re.compile(split_pattern)
 
-Quantity.set_prefs(
-    map_sf = Quantity.map_sf_to_greek,
-    preferred_units = {
-        "Ω": "Ohm Ohms ohm ohms Ω",
-        "Ʊ": "Mho Mhos mho mhos Siemens Siemen",
-        "°C": "dC",
-        "°F": "dF",
-    },
-    known_units = "K",
-)
+# SCHEMA {{{1
+# normalize_key()  {{{2
+def normalize_key(key, parent_keys):
+    if parent_keys in [
+        ("settings", "preferred_units"),
+        ("settings", "simplifications", "additive"),
+        ("settings", "simplifications", "multiply"),
+        ("settings", "simplifications", "divide"),
+        ("commands",),
+    ]:
+        return key
+    return '_'.join(key.lower().split())
 
-# HELPERS {{{1
+# to_pair()  {{{2
+def to_pair(arg):
+    try:
+        components = tuple(c.strip() for c in arg.split(','))
+        if len(components) != 2:
+            raise Invalid('key must be a comma separated pair of units')
+        return components
+    except AttributeError:
+        raise Invalid('expected an octal integer')
+
+def to_bool(arg):
+    arg = arg.lower()
+    if arg in ["yes", "'yes", "true", "'true", "1"]:
+        return True
+    if arg in ["no", "'no", "false", "'false", "0"]:
+        return False
+    raise Invalid('expected boolean')
+
+# validate_configuration()  {{{2
+validate_configuration = Schema(dict(
+    settings = dict(
+        format = str,
+        map_sf = {str: str},
+        output_sf = str,
+        preferred_units = {str: str},
+        known_units = str,
+        accept_binary = to_bool,
+        simplifications = dict(
+            additive = {to_pair: str},
+            multiply = {to_pair: str},
+            divide = {to_pair: str},
+        )
+    ),
+    commands = {
+        str: {
+            "title": str,
+            "description": str,
+            "stack": str,
+            Required("code"): str,
+        }
+    }
+))
+
+
+# HELPER FUNCTIONS {{{1
 # tokenize() {{{2
 def tokenize(entered):
-    # Basically this is a simple split on spaces except the entered string is 
-    # first processed to add a leading space to operators when outside a quoted 
-    # string to allow an operator to immediately follow a number or variable.
-    chars = []
-    within_quotes = False
-    for char in entered:
-        if char == '"':
-            within_quotes = not within_quotes
-        if not within_quotes and char in "+-*/":
-            chars.append(" " + char)
-        else:
-            chars.append(char)
-    return ''.join(chars).split()
+    tokens = []
 
-# is_format() {{{2
-def is_format(token):
-    match = is_form.match(token)
-    if match:
-        form, prec = match.group(1, 2)
-        preferences = forms.get(form, form)
-        if prec:
-            preferences['prec'] = int(prec)
-        Quantity.set_prefs(**preferences)
-        return True
+    # first split into tokens while treating quoted strings as a single token
+    for token in splitter.findall(entered):
+        # look simple operator trailing a number of variable
+        if token[-1:] in "+-*/" and token[-2:-1].isalnum():
+            # found trailing operator, split operator into its own token.
+            tokens.append(token[:-1])
+            tokens.append(token[-1])
+        else:
+            tokens.append(token)
+    return tokens
+
+
+# push() {{{2
+def push(value):
+    stack.append(value)
+
+# pop() {{{2
+def pop():
+    return stack.pop()
+
+# peek() {{{2
+def peek():
+    return stack[-1]
+
+execution_context = dict(
+    math = math,
+    Quantity = Quantity,
+    push = push,
+    pop = pop,
+    peek = peek,
+)
 
 # evaluate() {{{2
 def evaluate(entered):
-    for token in tokenize(entered):
-        if token == "+":
-            stack.append(stack.pop() + stack.pop())
-        elif token == "-":
-            subtrahend = stack.pop()
-            minuend = stack.pop()
-            stack.append(minuend - subtrahend)
-        elif token == "*":
-            stack.append(stack.pop() * stack.pop())
-        elif token == "/":
-            divisor = stack.pop()
-            numerator = stack.pop()
-            stack.append(numerator / divisor)
-        elif token[0] == '"' and token[-1] == '"':
-            stack[-1].units = token[1:-1]
-        elif token in variables:
-            stack.append(variables[token])
-        elif token == "chs":
-            stack.append(-stack.pop())
-        elif token == "recip":
-            stack.append(1 / stack.pop())
-        elif token == "swap":
-            stack[-2], stack[-1] = stack[-1], stack[-2]
-        elif token == "dup":
-            stack.append(stack[-1])
-        elif token.startswith("="):
-            variables[token[1:]] = stack[-1]
-        elif is_format(token):
-            pass  # format is set in is_format()
-        else:
-            # QuantiPhy only applies preferred units upon output.
-            # Force the conversion on input.
-            q = Quantity(token)
-            q.units = q._preferred_units.get(q.units, q.units)
-            stack.append(q)
+    global stack, variables
+
+    def builtin_command(token):
+        for regex, values in builtin_commands.items():
+            match = re.match(regex, token)
+            if match:
+                values["code"](token)
+                return True
+
+    bkup_stack = stack.copy()
+    bkup_vars = variables.copy()
+    try:
+        for token in tokenize(entered):
+            if token in commands:
+                exec(commands[token]['code'], execution_context)
+            elif builtin_command(token):
+                pass  # command is run in builtin_command()
+            else:
+                # QuantiPhy only applies preferred units upon output.
+                # Force the conversion on input.
+                q = Quantity(token)
+                q.units = q._preferred_units.get(q.units, q.units)
+                stack.append(q)
+    except Exception as e:
+        error(full_stop(e))
+        stack = bkup_stack
+        variables = bkup_vars
     return stack[-1] if stack else empty
 
+
+# BUILT-IN COMMANDS  {{{1
+builtin_commands = {}
+
+# Set Format {{{2
+def set_format(token):
+    match = is_format.match(token)
+    form, prec = match.group(1, 2)
+    preferences = forms.get(form, form)
+    if prec:
+        preferences['prec'] = int(prec)
+    Quantity.set_prefs(**preferences)
+
+builtin_commands[format_pattern] = dict(
+    title = "set display format and precision of numbers",
+    examples = ["si[❬N❭]", "sia[❬N❭]", "fix[❬N❭]", "eng[❬N❭]", "bin[❬N❭]"],
+    description = """
+        Numbers are displayed with the specified format and number of digits of 
+        precision.  The following formats are supported:
+            si: SI scale factors are used to convey the exponent when possible.
+            sia: ASCII SI scale factors are used to convey the exponent when possible.
+            fix: Numbers are displayed with a fixed number of digits to the right of
+                 the decimal point.
+            eng: Numbers are displayed with a fixed number of digits of precision
+                 and the exponent is given explicitly as an integer.
+            bin: Numbers are displayed with a binary scale factor when posible.
+                 A binary scale factor is a unit prefix that indicates 
+                 a multiple of a unit of measurement by an integer power of two.
+        If an optional whole number N immediately follows the format, the 
+        precision is set to N digits.
+    """,
+    stack = '⋯  ➜  ⋯',
+    code = set_format,
+)
+
+# Quoted units {{{2
+def add_unit(token):
+    value = pop()
+    value.units = token[1:-1]
+    push(value)
+
+builtin_commands['"[^"]*"'] = dict(
+    title = "set the unit of the x register",
+    examples = ['"❬unit❭"'],
+    description = """
+        The units given are applied to the value in the x register.
+        The actual value is unchanged.
+    """,
+    stack = 'x, ⋯  ➜  x "units", ⋯',
+    code = add_unit,
+)
+
+# Change Sign {{{2
+def change_sign(token):
+    push(-pop())
+
+builtin_commands['chs'] = dict(
+    title = "change sign",
+    description = """
+        The value in the x register is replaced with its negative.
+    """,
+    stack = 'x, ⋯  ➜  -x, ⋯',
+    code = change_sign,
+)
+
+# Swap X & Y {{{2
+def swap(token):
+    x = pop()
+    y = pop()
+    push(y)
+    push(x)
+
+builtin_commands['swap'] = dict(
+    title = "swap x and y",
+    description = """
+        The values in the x and y registers are swapped.
+    """,
+    stack = 'x, y, ⋯  ➜  y, x, ⋯',
+    code = swap,
+)
+
+# Duplicate X {{{2
+def dup(token):
+    x = pop()
+    push(x)
+    push(x)
+
+builtin_commands['dup'] = dict(
+    title = "duplicate x",
+    description = """
+        The value in the x register is pushed onto the stack again.
+    """,
+    stack = 'x, ⋯  ➜  x, x, ⋯',
+    code = dup,
+)
+
+# Store to a variable {{{2
+def store(token):
+    name = token[1:]
+    examples = ["=❬variable❭"]
+    x = peek()
+    variables[name] = x
+
+builtin_commands['=[a-zA-Z_][a-zA-Z0-9_]*'] = dict(
+    title = "store value into a variable",
+    examples = ["=❬variable❭"],
+    description = """
+        Store the value in the x register into a variable with the given name.
+    """,
+    stack = '⋯  ➜  ⋯',
+    code = store,
+)
+
+# Recall from a variable {{{2
+def recall(token):
+    try:
+        push(variables[token])
+    except KeyError as e:
+        raise Error("unknown variable.", culprit=token)
+
+builtin_commands['[a-zA-Z_][a-zA-Z0-9_]*'] = dict(
+    title = "recall value of a variable",
+    examples = ["❬variable❭"],
+    description = """
+        The value is pushed to the x register.
+    """,
+    stack = '⋯  ➜  variable_value, ⋯',
+    code = recall,
+)
+
+# Help {{{2
+def help(token):
+    command = token[1:]
+    summary = None
+    for key, values in commands.items():
+        if command == key:
+            summary = values
+            break
+    if not summary:
+        for key, values in builtin_commands.items():
+            if re.match(key, command):
+                summary = values
+                break
+    if summary:
+        if 'title' in summary:
+            title = f"{command}: {summary['title']}"
+        else:
+            title = f"{command}:"
+        if 'description' in summary:
+            description = dedent(summary['description'], strip_nl='b')
+        else:
+            description = None
+        if 'stack' in summary:
+            stack = f"stack: {summary['stack']}"
+        else:
+            stack = None
+        display(*cull([title, description, stack]), sep = '\n\n')
+    else:
+        topics = list(commands.keys())
+        for key, values in builtin_commands.items():
+            if 'examples' in values:
+                topics.extend(values['examples'])
+            else:
+                topics.append(key)
+        display(columns(sorted(topics), leader=''))
+
+builtin_commands[r'\?.*'] = dict(
+    title = "help on specified construct",
+    examples = ["?❬token❭"],
+    description = """
+        A topic, in the form of a token, may follow the question mark, in which
+        case a detailed description will be printed for that topic. If no topic
+        is given, a list of available topics is listed.
+    """,
+    stack = '⋯  ➜  ⋯',
+    code = help,
+)
+
+
 # MAIN {{{1
-if __name__ == "__main__":
-    cmdline = docopt(__doc__)
-    while True:
-        try:
-            entered = input(f"{highlight(prompt)}: ")
-        except (EOFError, KeyboardInterrupt, SystemError):
-            display()
-            terminate()
-        try:
-            prev_stack = stack.copy()
-            prompt = evaluate(entered)
-        except QuantiPhyError as e:
-            stack = prev_stack
-            error(full_stop(e))
-        except IndexError as e:
-            stack = prev_stack
-            error(full_stop(e).replace('list', 'stack'))
+# read configuration file {{{2
+settings_dir = Path(user_config_dir("rpn"))
+config_filepath = settings_dir / "config.nt"
+try:
+    config = nt.load(
+        config_filepath,
+        top = dict,
+        normalize_key = normalize_key,
+        keymap = (keymap:={})
+    )
+    config = validate_configuration(config)
+    settings = config.get("settings", {})
+    set_format(settings.get('format', 'fix2'))
+    add_simplifications(settings.get('simplifications', {}), clean=True)
+    commands = config.get("commands", {})
+    commands = {k:value for key, value in commands.items() for k in key.split()}
+except OSError as e:
+    fatal(os_error(e))
+except nt.NestedTextError as e:
+    e.terminate()
+except MultipleInvalid as e:
+    report_voluptuous_errors(e, keymap, config_filepath)
+    terminate()
+
+# configure QuantiPhy  {{{2
+Quantity.set_prefs(**dict(
+    map_sf = settings.get('map_sf'),
+    output_sf = settings.get('output_sf'),
+    preferred_units = settings.get('preferred_units'),
+    known_units = settings.get('known_units'),
+    accept_binary = settings.get('accept_binary', True),
+))
+
+# process command line {{{2
+cmdline = docopt(__doc__)
+
+# main loop  {{{2
+while True:
+    try:
+        entered = input(f"{highlight(prompt)}: ")
+    except (EOFError, KeyboardInterrupt, SystemError):
+        display()
+        terminate()
+    try:
+        prev_stack = stack.copy()
+        prompt = evaluate(entered)
+    except (QuantiPhyError, Error) as e:
+        stack = prev_stack
+        error(full_stop(e))
+    except IndexError as e:
+        stack = prev_stack
+        error(full_stop(e).replace('list', 'stack'))

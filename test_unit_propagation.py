@@ -1,7 +1,6 @@
 from functools import partial
-from parametrize_from_file import parametrize, Namespace
-from voluptuous import Schema, Optional, Required, Invalid, Any
-from textwrap import dedent
+from parametrize_from_file import parametrize
+from voluptuous import Schema, Optional, Required
 from unit_propagation import (
     UnitPropagatingQuantity, InvalidNumber, IncompatibleUnits
 )

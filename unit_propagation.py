@@ -1,11 +1,7 @@
-# Unit Propagation — Simple Minded Unit Propagtaion for QuantiPhy
+# Unit Propagation — Simple Minded Unit Propagation for QuantiPhy
 # encoding: utf8
 
-# Currently the code does not distinguish between unitless numbers (units == '')
-# and numbers that cannot carry units, like floats.
-# It might make sense to distinguish the two
-
-# Description {{{1
+# DESCRIPTION {{{1
 """
 Adds unit propagation to *QuantiPhy*.
 """
@@ -20,8 +16,12 @@ Adds unit propagation to *QuantiPhy*.
 #        units, but those units are compatible (where as Fahrenheit is not).
 #        But in addition, you cannot convert Celsius to Kelvin before doing the
 #        addition.
+# Currently the code does not distinguish between unitless numbers (units == '')
+# and numbers that cannot carry units, like floats.
+# It might make sense to distinguish the two
 
-# MIT License {{{1
+
+# MIT LICENSE {{{1
 # Copyright (C) 2016-2024 Kenneth S. Kundert
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -42,14 +42,14 @@ Adds unit propagation to *QuantiPhy*.
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Imports {{{1
+# IMPORTS {{{1
 from quantiphy import Quantity, QuantiPhyError, IncompatibleUnits, InvalidNumber
 import math
 import numbers
 import operator
 
 
-# Globals {{{1
+# GLOBALS {{{1
 __version__ = '0.1'
 __released__ = '2024-03-01'
 # product_sep = self.narrow_non_breaking_space
@@ -91,13 +91,22 @@ SIMPLIFICATIONS = dict(
 )
 
 
-# def add_simplifications(multiply=None, divide=None):
-#     if multiply:
-#         SIMPLIFICATIONS['multiply'].update(multiply)
-#     if divide:
-#         SIMPLIFICATIONS['divide'].update(divide)
-#   Not ready for prime time.  Need to recheck parentheses and resort
-#   commutative operators after adding new simplifications
+def add_simplifications(simplifications, clean=False):
+    global SIMPLIFICATIONS
+
+    sections = ['additive', 'multiply', 'divide']
+    if clean:
+        for section in sections:
+            SIMPLIFICATIONS[section] = {}
+
+    for section, rules in simplifications.items():
+        assert section in sections, f"{section}: unknown section"
+        for given_units, resolved_unit in rules.items():
+            if resolved_unit == "@error":
+                resolved_unit = None
+            SIMPLIFICATIONS[section][given_units] = resolved_unit
+
+    SIMPLIFICATIONS = normalize_simplifications(SIMPLIFICATIONS)
 
 
 # Utilities {{{1
@@ -110,7 +119,7 @@ def group(units, aggressive=False):
     return units
 
 
-# communitive_group() {{{2
+# normalize_units() {{{2
 def normalize_units(unit0, unit1, type):
     if type in ['additive', 'multiply']:
         units = sorted([unit0, unit1])
@@ -412,6 +421,6 @@ class UnitPropagatingQuantity(Quantity):
     def __eq__(self, other):
         return self._equality(other, operator.eq, False)
 
-    # equal {{{3
+    # not equal {{{3
     def __ne__(self, other):
         return self._equality(other, operator.ne, True)
