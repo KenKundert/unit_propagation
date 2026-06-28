@@ -4,6 +4,17 @@
 # DESCRIPTION {{{1
 """
 Adds unit propagation to *QuantiPhy*.
+
+A relatively half-hearted attempt to add unit propagation to QuantiPhy.  Unit
+propagation is a tremendously challenging endeavor, and to do better I would
+have to build SI unit framework into the package, and that would only address
+scientific units.  Instead this package just combines units as given and then
+applies a relatively small number of simplification rules (see SIMPLIFICATIONS).
+For example '1 V * 1 A' becomes '1 V-A' initially, and then a simplification
+rule convertes 'V-A' to 'W'.  Currently, the rules are largely targeted at
+common electrical units.
+
+Additional simplification rules can be added using add_simplifications().
 """
 
 # Issues
@@ -52,7 +63,7 @@ SIMPLIFICATIONS = dict(
         ('Ω', 'A'):           'V',        # voltage (from Greek Omega symbol)
         ('Ʊ', 'V'):           'A',        # amperes
         ('rads', 'Hz'):       'rads/s',   # radial frequency
-        ('rads/s', 's'):      'rads',    # radians
+        ('rads/s', 's'):      'rads',     # radians
         ('Hz/V', 'V'):        'Hz',       # frequency
         ('m', 'm'):           'm²',       # area
         ('m²', 'm'):          'm³',       # volume
@@ -65,7 +76,7 @@ SIMPLIFICATIONS = dict(
         ('',  's'):           'Hz',       # frequency
         ('', 'Hz'):           's',        # time
         ('', 'Ω'):            'Ʊ',        # conductance (from Ohm symbol)
-        ('', 'Ω'):            'Ʊ',        # conductance (from Ohm symbol)
+        ('', 'Ω'):            'Ʊ',        # conductance (from Omega symbol)
         ('', 'Ʊ'):            'Ω',        # resistance (to Ohm symbol)
         ('rads/s', 'rads'):   'Hz',       # hertz
         ('m²', 'm'):          'm',        # length
@@ -314,9 +325,8 @@ class UnitPropagatingQuantity(Quantity):
         else:
             units = ''
 
-        # this is not quite right, perhaps when defining the simplifications I
-        # could also define new classes for the product
-        new = self.__class__(self.real / divisor.real, units=units)
+        new_class = self._preferred_quantities.get(units, self.__class__)
+        new = new_class(self.real / divisor.real, units=units)
         new._inherit_attributes(self)
         return new
 
