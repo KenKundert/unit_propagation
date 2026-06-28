@@ -44,8 +44,8 @@ import operator
 
 
 # GLOBALS {{{1
-__version__ = '0.1'
-__released__ = '2024-03-01'
+__version__ = '0.2'
+__released__ = '2026-06-27'
 # product_sep = self.narrow_non_breaking_space
 # product_sep = '⋅'
 product_sep = '-'

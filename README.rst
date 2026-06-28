@@ -17,8 +17,8 @@ Simple-Minded Unit Propagation for QuantiPhy
     :target: https://pypi.python.org/pypi/unit_propagation/
 
 | Author: Ken Kundert
-| Version: 0.1
-| Released: 2024-03-01
+| Version: 0.2
+| Released: 2026-06-27
 |
 
 This is a package used to experiment with adding unit propagation to QuantiPhy_.  
